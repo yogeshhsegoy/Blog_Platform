@@ -1,0 +1,109 @@
+ABSTRACT SYNTAX TREE
+└─ TYPE: int
+└─ MAIN_FUNCTION: main
+  └─ PARAMETER_LIST: empty
+  └─ TYPE: int
+  └─ VARIABLE_DECL: a
+  └─ VARIABLE_LIST: single_var
+  └─ VARIABLE_DECL: b
+  └─ VARIABLE_LIST: multiple_vars
+  └─ DECLARATION
+  └─ DECLARATION_STATEMENT
+  └─ ASSIGNMENT: a
+    └─ LITERAL: 10
+    └─ EXPRESSION: 10
+  └─ ASSIGNMENT_STATEMENT
+  └─ ASSIGNMENT: b
+    └─ LITERAL: 11
+    └─ EXPRESSION: 11
+  └─ ASSIGNMENT_STATEMENT
+  └─ ASSIGNMENT: a
+    └─ LITERAL: 8997
+    └─ LITERAL: 5816
+    └─ DIV_EXPRESSION: /
+    └─ LITERAL: 4258
+    └─ DIV_EXPRESSION: /
+    └─ EXPRESSION: 0
+  └─ ERROR: statement_error
+  └─ ASSIGNMENT: a4
+    └─ LITERAL: 2416
+    └─ LITERAL: 4649
+    └─ ADD_EXPRESSION: +
+    └─ EXPRESSION: 7065
+  └─ ERROR: statement_error
+  └─ ASSIGNMENT: a3
+    └─ LITERAL: 3916
+    └─ LITERAL: 3698
+    └─ ADD_EXPRESSION: +
+    └─ LITERAL: 3684
+    └─ SUB_EXPRESSION: -
+    └─ EXPRESSION: 3930
+  └─ ERROR: statement_error
+  └─ ASSIGNMENT: a6
+    └─ LITERAL: 5067
+    └─ LITERAL: 3179
+    └─ MUL_EXPRESSION: *
+    └─ LITERAL: 3287
+    └─ DIV_EXPRESSION: /
+    └─ EXPRESSION: 4900
+  └─ ERROR: statement_error
+  └─ IDENTIFIER: a
+  └─ EXPRESSION: 0
+  └─ RELATIONAL_OPERATOR: <=
+  └─ IDENTIFIER: b
+  └─ RELATIONAL_EXPRESSION: <=
+  └─ CONDITION_EXPR
+  └─ WHILE_LOOP
+    └─ CONDITION: true
+  └─ BLOCK
+    └─ IDENTIFIER: a
+    └─ EXPRESSION: 0
+    └─ RELATIONAL_OPERATOR: <=
+    └─ IDENTIFIER: b
+    └─ RELATIONAL_EXPRESSION: <=
+    └─ CONDITION_EXPR
+    └─ WHILE_LOOP
+      └─ CONDITION: true
+    └─ BLOCK
+      └─ IDENTIFIER: a
+      └─ EXPRESSION: 0
+      └─ RELATIONAL_OPERATOR: >=
+      └─ IDENTIFIER: b
+      └─ RELATIONAL_EXPRESSION: >=
+      └─ CONDITION_EXPR
+      └─ WHILE_LOOP
+        └─ CONDITION: false
+      └─ BLOCK
+        └─ TYPE: int
+        └─ VARIABLE_DECL: a3
+        └─ VARIABLE_LIST: single_var
+        └─ DECLARATION
+        └─ DECLARATION_STATEMENT
+        └─ ASSIGNMENT: a3
+          └─ LITERAL: 3323
+          └─ EXPRESSION: 3323
+          └─ RELATIONAL_OPERATOR: ==
+          └─ LITERAL: 2665
+          └─ LITERAL: 297
+          └─ ADD_EXPRESSION: +
+          └─ RELATIONAL_EXPRESSION: ==
+          └─ RELATIONAL_OPERATOR: >
+          └─ LITERAL: 5816
+          └─ RELATIONAL_EXPRESSION: >
+        └─ ASSIGNMENT_STATEMENT
+        └─ TYPE: int
+        └─ VARIABLE_DECL: a4
+        └─ VARIABLE_LIST: single_var
+        └─ DECLARATION
+        └─ DECLARATION_STATEMENT
+        └─ ASSIGNMENT: a4
+          └─ LITERAL: 6423
+          └─ LITERAL: 3661
+          └─ LITERAL: 1998
+          └─ MUL_EXPRESSION: *
+          └─ ADD_EXPRESSION: +
+          └─ EXPRESSION: 7321101
+        └─ ASSIGNMENT_STATEMENT
+      └─ LOOP: while
+    └─ LOOP: while
+  └─ LOOP: while
