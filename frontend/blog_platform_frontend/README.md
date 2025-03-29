@@ -40,7 +40,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 add modules 
 
 ```bash
-npm install draft-js
 npm install @mantine/core @mantine/hooks @mantine/tiptap @tiptap/react @tiptap/starter-kit @tabler/icons-react
-
+npm install -D @tailwindcss/typography
+npm install @tiptap/extension-table @tiptap/extension-table-row @tiptap/extension-table-cell @tiptap/extension-table-header @tiptap/extension-image @tiptap/extension-blockquote @tiptap/extension-horizontal-rule
 ```

@@ -1,142 +1,161 @@
 "use client";
+import React, { useState, useRef } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Bold } from '@tiptap/extension-bold';
+import { Italic } from '@tiptap/extension-italic';
+import { Underline } from '@tiptap/extension-underline';
+import { Heading } from '@tiptap/extension-heading';
+import { BulletList } from '@tiptap/extension-bullet-list';
+import { OrderedList } from '@tiptap/extension-ordered-list';
+import { ListItem } from '@tiptap/extension-list-item';
+import { Link } from '@tiptap/extension-link';
+import { CodeBlock } from '@tiptap/extension-code-block';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Image } from '@tiptap/extension-image';
+import { Blockquote } from '@tiptap/extension-blockquote';
+import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { Editor, EditorState, RichUtils, convertToRaw } from "draft-js";
-import "draft-js/dist/Draft.css";
-
-const CreateBlogPage = () => {
-  const [blogData, setBlogData] = useState({
-    title: "",
-    summary: "",
-    category: "",
-    tags: [] as string[],
-    schedule: "",
-    allowComments: true,
+const CreateBlog = () => {
+  const [title, setTitle] = useState('');
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkURL, setLinkURL] = useState('');
+  const [isImageURLModalOpen, setIsImageURLModalOpen] = useState(false);
+  const [imageURL, setImageURL] = useState('');
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Bold,
+      Italic,
+      Underline,
+      Heading.configure({
+        levels: [1, 2, 3],
+      }),
+      BulletList,
+      OrderedList,
+      ListItem,
+      Link,
+      CodeBlock.configure({
+        HTMLAttributes: {
+          class: 'rounded-md bg-[#b8b0a7] text-[#151515] p-4 font-mono text-sm',
+        },
+      }),
+      Table,
+      TableRow,
+      TableHeader,
+      TableCell,
+      Image,
+      Blockquote,
+      HorizontalRule,
+    ],
+    content: '<p>Start writing your blog post here...</p>',
   });
 
-  const [editorState, setEditorState] = useState(() => EditorState.createEmpty());
-  const [tagInput, setTagInput] = useState("");
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [previewMode, setPreviewMode] = useState(false);
+  const imageInputRef = useRef(null);
 
-  // Auto-save blogData to localStorage
-  useEffect(() => {
-    const savedData = localStorage.getItem("draftBlogPost");
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      setBlogData(parsed.blogData || blogData);
-      // For simplicity, we're not restoring editorState.
+  const handleTitleChange = (event) => {
+    setTitle(event.target.value);
+  };
+
+  const handleSave = async () => {
+    if (editor) {
+      const contentHTML = editor.getHTML();
+      const postData = {
+        title: title,
+        content: contentHTML,
+        // You might want to include other metadata like author, date, etc.
+      };
+
+      try {
+        const response = await fetch('/api/blogs', { // Replace with your actual API endpoint
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
+        });
+
+        if (response.ok) {
+          // Handle success, maybe redirect to the blog post or a success message
+          console.log('Blog post saved successfully!');
+        } else {
+          // Handle error
+          console.error('Failed to save blog post:', response.status);
+        }
+      } catch (error) {
+        console.error('Error saving blog post:', error);
+      }
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("draftBlogPost", JSON.stringify({ blogData }));
-  }, [blogData]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setBlogData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleTagAdd = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tagInput && !blogData.tags.includes(tagInput.trim())) {
-      setBlogData((prev) => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-      setTagInput("");
-    }
-  };
-
-  const removeTag = (index: number) => {
-    setBlogData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
     if (file) {
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
+      const imageUrl = URL.createObjectURL(file);
+      editor.chain().focus().setImage({ src: imageUrl }).run();
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const contentState = editorState.getCurrentContent();
-    const rawContent = convertToRaw(contentState);
-
-    const postData = {
-      ...blogData,
-      content: rawContent,
-      coverImage,
-    };
-
-    console.log("Blog post created:", postData);
-    // Connect this to your backend to save the blog post
-
-    localStorage.removeItem("draftBlogPost");
+  const handleImageViaLink = () => {
+    openImageURLModal();
   };
 
-  const handleKeyCommand = (command: string, editorState: EditorState) => {
-    const newState = RichUtils.handleKeyCommand(editorState, command);
-    if (newState) {
-      setEditorState(newState);
-      return "handled";
+  const triggerImageUpload = () => {
+    imageInputRef.current?.click();
+  };
+
+  const openLinkModal = () => {
+    setIsLinkModalOpen(true);
+    setLinkURL(''); // Reset the URL when opening
+  };
+
+  const closeLinkModal = () => {
+    setIsLinkModalOpen(false);
+  };
+
+  const applyLink = () => {
+    if (linkURL) {
+      let urlToSet = linkURL;
+      if (!linkURL.startsWith('http://') && !linkURL.startsWith('https://')) {
+        urlToSet = `https://${linkURL}`;
+      }
+      editor.chain().focus().setLink({ href: urlToSet }).run();
     }
-    return "not-handled";
+    closeLinkModal();
   };
 
-  const onUnderlineClick = () => {
-    setEditorState(RichUtils.toggleInlineStyle(editorState, "UNDERLINE"));
+  const openImageURLModal = () => {
+    setIsImageURLModalOpen(true);
+    setImageURL('');
   };
 
-  const onBoldClick = () => {
-    setEditorState(RichUtils.toggleInlineStyle(editorState, "BOLD"));
+  const closeImageURLModal = () => {
+    setIsImageURLModalOpen(false);
   };
 
-  const onItalicClick = () => {
-    setEditorState(RichUtils.toggleInlineStyle(editorState, "ITALIC"));
+  const applyImageURL = () => {
+    if (imageURL) {
+      editor.chain().focus().setImage({ src: imageURL }).run();
+    }
+    closeImageURLModal();
   };
 
-const onHeadingClick = (level: string) => {
-  // Get the current selection
-  const selection = editorState.getSelection();
-  
-  // Check if there's any selected text
-  if (!selection.isCollapsed()) {
-    setEditorState(RichUtils.toggleBlockType(editorState, level));
-  } else {
-    // If no text is selected, just change the block type for the current block
-    const contentState = editorState.getCurrentContent();
-    const blockKey = selection.getStartKey();
-    const block = contentState.getBlockForKey(blockKey);
-    const blockType = block.getType();
-    
-    // If already this heading type, revert to unstyled
-    const newType = blockType === level ? 'unstyled' : level;
-    
-    setEditorState(RichUtils.toggleBlockType(editorState, newType));
+  if (!editor) {
+    return <div>Loading editor...</div>;
   }
-};
-
-  const onBlockquoteClick = () => {
-    setEditorState(RichUtils.toggleBlockType(editorState, "blockquote"));
-  };
 
   return (
     <div className="min-h-screen bg-[rgb(213,208,202)] text-[rgb(21,21,21)] font-sans relative">
-      {/* Denser Dot Matrix Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle,rgb(110,110,110,0.2)_1px,transparent_1px)] bg-[size:8px_8px] opacity-50"></div>
+      {/* Subtle Dot Matrix Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle,rgb(110,110,110,0.2)_1.6px,transparent_1.6px)] bg-[size:14px_14px] opacity-50 z-0"></div>
 
       {/* Navbar */}
       <nav className="flex justify-between items-center p-6 bg-[rgb(213,208,202)] relative z-10">
-        <div className="text-2xl font-extrabold tracking-wide">blog.proj</div>
-        <div className="space-x-6 text-sm font-medium">
+        <div className="text-2xl font-extrabold tracking-wide text-[rgb(21,21,21)]">blog.proj</div>
+        <div className="space-x-6 text-sm font-medium text-[rgb(21,21,21)]">
           <a href="/" className="hover:text-[rgb(151,151,151)] transition">Home</a>
           <a href="/about" className="hover:text-[rgb(151,151,151)] transition">About</a>
           <a href="/create" className="hover:text-[rgb(151,151,151)] transition">Create Blog</a>
@@ -146,212 +165,210 @@ const onHeadingClick = (level: string) => {
         </div>
       </nav>
 
-      {/* Create Blog Form */}
-      <div className="p-8 w-full max-w-4xl mx-auto mt-10 relative z-10">
-        <h1 className="text-3xl font-bold text-center mb-6">Create a New Blog Post</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium">Title</label>
-            <input
-              type="text"
-              name="title"
-              value={blogData.title}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md bg-[rgb(213,208,202)] focus:outline-none focus:ring-2 focus:ring-[rgb(151,151,151)]"
-              required
-            />
-          </div>
+      {/* Create Blog Content */}
+      <div className="max-w-4xl mx-auto py-16 px-6 relative z-10">
+        <h1 className="text-4xl font-bold text-[rgb(21,21,21)] mb-8">Create New Blog Post</h1>
 
-          {/* Summary */}
-          <div>
-            <label className="block text-sm font-medium">Summary</label>
-            <textarea
-              name="summary"
-              value={blogData.summary}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md bg-[rgb(213,208,202)] focus:outline-none focus:ring-2 focus:ring-[rgb(151,151,151)]"
-              rows={3}
-              placeholder="A brief summary of your post..."
-            />
-          </div>
+        <div className="mb-4">
+          <label htmlFor="title" className="block text-sm font-medium text-[rgb(21,21,21)]">
+            Title:
+          </label>
+          <input
+            type="text"
+            id="title"
+            className="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-[rgb(21,21,21)] p-2 bg-white border border-gray-300"
+            value={title}
+            onChange={handleTitleChange}
+          />
+        </div>
 
-          {/* Cover Image */}
-          <div>
-            <label className="block text-sm font-medium">Cover Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full p-2"
-            />
-            {coverPreview && (
-              <img
-                src={coverPreview}
-                alt="Cover Preview"
-                className="mt-2 h-48 object-cover rounded-md"
-              />
-            )}
-          </div>
+        {/* Tiptap Toolbar */}
+        <div className="mb-2 flex flex-wrap gap-2">
+          <button
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('bold') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Bold
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('italic') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Italic
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('underline') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Underline
+          </button>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium">Category</label>
+          <button
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('orderedList') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Ordered List
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('bulletList') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Bullet List
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('codeBlock') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Code Block
+          </button>
+          <div className="relative">
             <select
-              name="category"
-              value={blogData.category}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md bg-[rgb(213,208,202)] focus:outline-none focus:ring-2 focus:ring-[rgb(151,151,151)]"
-              required
+              onChange={(e) => editor.chain().focus().setHeading({ level: parseInt(e.target.value, 10) }).run()}
+              className="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-1 px-2 rounded-md leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm pr-8"
+              value={editor.isActive('heading', { level: 1 }) ? 1 : editor.isActive('heading', { level: 2 }) ? 2 : editor.isActive('heading', { level: 3 }) ? 3 : ''}
             >
-              <option value="">Select a category</option>
-              <option value="tech">Tech</option>
-              <option value="lifestyle">Lifestyle</option>
-              <option value="travel">Travel</option>
-              <option value="food">Food</option>
+              <option value="">Heading</option>
+              <option value="1">H1</option>
+              <option value="2">H2</option>
+              <option value="3">H3</option>
             </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            </div>
           </div>
+          <button
+            onClick={openLinkModal}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('link') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Link
+          </button>
+          {editor.isActive('link') && (
+            <button
+              onClick={() => editor.chain().focus().unsetLink().run()}
+              className="px-2 py-1 rounded-md text-sm bg-red-400 text-white hover:bg-red-500 transition font-semibold"
+            >
+              Unlink
+            </button>
+          )}
+          <button
+            onClick={triggerImageUpload}
+            className="px-2 py-1 rounded-md text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800 transition font-semibold"
+          >
+            Add Image
+          </button>
+          <button
+            onClick={handleImageViaLink}
+            className="px-2 py-1 rounded-md text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800 transition font-semibold"
+          >
+            Image from URL
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={`px-2 py-1 rounded-md text-sm ${editor.isActive('blockquote') ? 'bg-[rgb(21,21,21)] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800'} transition font-semibold`}
+          >
+            Blockquote
+          </button>
+          <button
+            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()}
+            className="px-2 py-1 rounded-md text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800 transition font-semibold"
+          >
+            Table
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            className="px-2 py-1 rounded-md text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800 transition font-semibold"
+          >
+            Horizontal Rule
+          </button>
+        </div>
 
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-medium">Tags</label>
-            <div className="flex space-x-2">
+        <input
+          type="file"
+          accept="image/*"
+          ref={imageInputRef}
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+
+        <div className="rounded-md overflow-hidden bg-[#fefefe] p-4 editor-wrapper border border-gray-300">
+          <EditorContent editor={editor} className="prose prose-sm max-w-none [&_ol]:list-decimal [&_ul]:list-disc" />
+        </div>
+
+        {/* Link Modal */}
+        {isLinkModalOpen && (
+          <div className="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-20 backdrop-blur-md bg-black/30 transition-opacity duration-1100 ease-in-out">
+            <div className="relative p-8 bg-[rgb(213,208,202)] text-[rgb(21,21,21)] w-full max-w-md rounded-md transition-transform duration-1100 ease-in-out">
+              <h2 className="text-lg font-bold mb-4">Insert Link</h2>
+              <label htmlFor="link-url" className="block text-sm font-medium">
+                URL:
+              </label>
               <input
                 type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                className="flex-1 p-2 border rounded-md bg-[rgb(213,208,202)] focus:outline-none focus:ring-2 focus:ring-[rgb(151,151,151)]"
-                placeholder="Enter tag and press Add"
+                id="link-url"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2"
+                value={linkURL}
+                onChange={(e) => setLinkURL(e.target.value)}
               />
-              <button
-                onClick={handleTagAdd}
-                className="px-4 py-2 bg-[rgb(21,21,21)] text-white rounded-md hover:bg-[rgb(51,51,51)] transition"
-              >
-                Add
-              </button>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {blogData.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="bg-[rgb(151,151,151)] text-white px-2 py-1 rounded-full text-xs flex items-center"
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={applyLink}
+                  className="px-4 py-2 bg-[rgb(21,21,21)] text-white rounded-lg hover:bg-[rgb(51,51,51)] focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold transition"
                 >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(index)}
-                    className="ml-2 text-[rgb(213,208,202)] hover:text-white"
-                  >
-                    &times;
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Content using Draft.js */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Content</label>
-            <div className="p-2 border rounded-md bg-white min-h-[200px]">
-              <div className="flex space-x-2 mb-2">
-                <button onClick={() => onBoldClick()} className="px-2 py-1 bg-gray-200 rounded">Bold</button>
-                <button onClick={() => onItalicClick()} className="px-2 py-1 bg-gray-200 rounded">Italic</button>
-                <button onClick={() => onUnderlineClick()} className="px-2 py-1 bg-gray-200 rounded">Underline</button>
-                <button onClick={() => onHeadingClick('header-one')} className="px-2 py-1 bg-gray-200 rounded">H1</button>
-                <button onClick={() => onHeadingClick('header-two')} className="px-2 py-1 bg-gray-200 rounded">H2</button>
-                <button onClick={() => onBlockquoteClick()} className="px-2 py-1 bg-gray-200 rounded">Blockquote</button>
+                  Apply
+                </button>
+                <button
+                  onClick={closeLinkModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 font-semibold transition"
+                >
+                  Cancel
+                </button>
               </div>
-              <Editor
-                editorState={editorState}
-                onChange={setEditorState}
-                handleKeyCommand={handleKeyCommand}
-                placeholder="Write your blog post content here..."
-              />
-            </div>
-          </div>
-
-          {/* Scheduling */}
-          <div>
-            <label className="block text-sm font-medium">Schedule Post (optional)</label>
-            <input
-              type="datetime-local"
-              name="schedule"
-              value={blogData.schedule}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-md bg-[rgb(213,208,202)] focus:outline-none focus:ring-2 focus:ring-[rgb(151,151,151)]"
-            />
-          </div>
-
-          {/* Comments Toggle */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name="allowComments"
-              checked={blogData.allowComments}
-              onChange={(e) =>
-                setBlogData((prev) => ({ ...prev, allowComments: e.target.checked }))
-              }
-              className="h-4 w-4"
-            />
-            <label className="text-sm">Allow Comments</label>
-          </div>
-
-          {/* Preview Toggle & Submit */}
-          <div className="flex justify-between items-center">
-            <button
-              type="button"
-              onClick={() => setPreviewMode(!previewMode)}
-              className="px-4 py-2 bg-[rgb(151,151,151)] text-white rounded-md hover:bg-[rgb(171,171,171)] transition"
-            >
-              {previewMode ? "Edit Mode" : "Preview Mode"}
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-[rgb(21,21,21)] text-white rounded-lg hover:bg-[rgb(51,51,51)] transition font-semibold"
-            >
-              Publish Blog Post
-            </button>
-          </div>
-        </form>
-
-        {/* Preview Section */}
-        {previewMode && (
-          <div className="mt-10 p-6 bg-white border rounded-md shadow-md">
-            <h2 className="text-2xl font-bold mb-4">{blogData.title || "Post Title"}</h2>
-            {coverPreview && (
-              <img
-                src={coverPreview}
-                alt="Cover Preview"
-                className="w-full h-64 object-cover mb-4 rounded-md"
-              />
-            )}
-            <p className="italic mb-4">{blogData.summary || "A brief summary..."}</p>
-            <div className="mb-4">
-              <strong>Category:</strong> {blogData.category || "None"}
-            </div>
-            <div className="mb-4">
-              <strong>Tags:</strong>{" "}
-              {blogData.tags.length > 0 ? blogData.tags.join(", ") : "None"}
-            </div>
-            <div className="mb-4">
-              <strong>Content Preview:</strong>
-              <pre className="bg-gray-100 p-2 mt-2 overflow-auto text-xs">
-                {JSON.stringify(convertToRaw(editorState.getCurrentContent()), null, 2)}
-              </pre>
-            </div>
-            {blogData.schedule && (
-              <div className="mt-4 text-sm text-gray-500">
-                Scheduled for: {new Date(blogData.schedule).toLocaleString()}
-              </div>
-            )}
-            <div className="mt-4 text-sm">
-              Comments: {blogData.allowComments ? "Enabled" : "Disabled"}
             </div>
           </div>
         )}
+
+        {/* Image URL Modal */}
+        {isImageURLModalOpen && (
+          <div className="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-20 backdrop-blur-md bg-black/30 transition-opacity duration-1100 ease-in-out">
+            <div className="relative p-8 bg-[rgb(213,208,202)] text-[rgb(21,21,21)] w-full max-w-md rounded-md transition-transform duration-1100 ease-in-out">
+              <h2 className="text-lg font-bold mb-4">Insert Image from URL</h2>
+              <label htmlFor="image-url" className="block text-sm font-medium">
+                Image URL:
+              </label>
+              <input
+                type="text"
+                id="image-url"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2"
+                value={imageURL}
+                onChange={(e) => setImageURL(e.target.value)}
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={applyImageURL}
+                  className="px-4 py-2 bg-[rgb(21,21,21)] text-white rounded-lg hover:bg-[rgb(51,51,51)] focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold transition"
+                >
+                  Apply
+                </button>
+                <button
+                  onClick={closeImageURLModal}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 font-semibold transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleSave}
+          className="mt-4 px-8 py-4 bg-[rgb(21,21,21)] text-white rounded-lg hover:bg-[rgb(51,51,51)] transition duration-1100 ease-in-out font-semibold"
+        >
+          Save Blog Post
+        </button>
       </div>
     </div>
   );
 };
 
-export default CreateBlogPage;
+export default CreateBlog;
