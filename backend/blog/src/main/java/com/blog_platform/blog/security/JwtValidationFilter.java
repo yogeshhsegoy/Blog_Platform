@@ -25,7 +25,8 @@ public class JwtValidationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String jwt = parseJwt(request);
-
+        // Log the JWT for debugging purposes
+        System.out.println(jwt);
         if (jwt != null && jwtUtils.validateToken(jwt)) {
             String username = jwtUtils.extractUsername(jwt);
             UsernamePasswordAuthenticationToken authentication =

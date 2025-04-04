@@ -27,8 +27,10 @@ public class JwtUtils {
                     .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(token);
+            System.out.println("Token is valid");
             return true;
         } catch (Exception e) {
+            System.out.println("Token is invalid: " + e.getMessage());
             return false;
         }
     }
