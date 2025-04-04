@@ -3,7 +3,7 @@ package com.blog_platform.blog.service;
 
 import com.blog_platform.blog.dto.BlogRequest;
 import com.blog_platform.blog.dto.BlogResponse;
-import com.blog_platform.blog.exception.BlogNotFoundException;
+import com.blog_platform.blog.exceptions.BlogNotFoundException;
 import com.blog_platform.blog.model.Blog;
 import com.blog_platform.blog.repository.BlogRepository;
 import lombok.RequiredArgsConstructor;
