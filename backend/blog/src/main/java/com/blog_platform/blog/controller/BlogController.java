@@ -27,6 +27,8 @@ public class BlogController {
     public ResponseEntity<BlogResponse> createBlog(
             @Valid @RequestBody BlogRequest blogRequest,
             @AuthenticationPrincipal UserDetails userDetails) {
+        System.out.println("Creating blog with request: " + blogRequest);
+        System.out.println("User details: " + userDetails);
         BlogResponse response = blogService.createBlog(blogRequest, userDetails.getUsername());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
