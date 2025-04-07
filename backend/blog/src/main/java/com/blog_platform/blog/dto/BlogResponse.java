@@ -1,6 +1,6 @@
 package com.blog_platform.blog.dto;
 
-
+import com.blog_platform.blog.enums.Topic;
 import com.blog_platform.blog.model.Comment;
 import lombok.Data;
 
@@ -19,4 +19,5 @@ public class BlogResponse {
     private List<Comment> comments;
     private boolean anonymous;
     private String userId;
+    private List<Topic> topics;  // Updated to be a list of Topic enums
 }

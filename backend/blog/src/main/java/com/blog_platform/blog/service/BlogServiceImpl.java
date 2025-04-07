@@ -1,5 +1,5 @@
 package com.blog_platform.blog.service;
-
+import com.blog_platform.blog.model.Comment;
 
 import com.blog_platform.blog.dto.BlogRequest;
 import com.blog_platform.blog.dto.BlogResponse;
@@ -23,6 +23,7 @@ public class BlogServiceImpl implements BlogService {
     @Transactional
     public BlogResponse createBlog(BlogRequest blogRequest, String userId) {
         Blog blog = new Blog();
+        blog.setTopics(blogRequest.getTopics());  // Updated to set topics list
         blog.setTitle(blogRequest.getTitle());
         blog.setContent(blogRequest.getContent());
         blog.setPreviewImage(blogRequest.getPreviewImage());
@@ -65,6 +66,7 @@ public class BlogServiceImpl implements BlogService {
         }
 
         blog.setTitle(blogRequest.getTitle());
+        blog.setTopics(blogRequest.getTopics());  // Updated to set topics list
         blog.setContent(blogRequest.getContent());
         blog.setPreviewImage(blogRequest.getPreviewImage());
         blog.setAnonymous(blogRequest.isAnonymous());
@@ -97,9 +99,29 @@ public class BlogServiceImpl implements BlogService {
         return mapToBlogResponse(likedBlog);
     }
 
+    @Override
+    @Transactional
+    public BlogResponse addComment(Long id, String commentContent, String userId) {
+        Blog blog = blogRepository.findById(id)
+                .orElseThrow(() -> new BlogNotFoundException("Blog not found with id: " + id));
+
+        // Create a new Comment object
+        Comment comment = new Comment();
+        comment.setContent(commentContent);
+        comment.setUserId(userId);
+        comment.setBlog(blog); // Set the blog reference
+
+        // Add the comment to the blog's comment list
+        blog.getComments().add(comment);
+
+        Blog updatedBlog = blogRepository.save(blog);
+        return mapToBlogResponse(updatedBlog);
+    }
+
     private BlogResponse mapToBlogResponse(Blog blog) {
         BlogResponse response = new BlogResponse();
         response.setId(blog.getId());
+        response.setTopics(blog.getTopics());  // Updated to get topics list
         response.setTitle(blog.getTitle());
         response.setContent(blog.getContent());
         response.setPreviewImage(blog.getPreviewImage());

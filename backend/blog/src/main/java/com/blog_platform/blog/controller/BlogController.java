@@ -35,6 +35,7 @@ public class BlogController {
 
     @GetMapping("/{id}")
     public ResponseEntity<BlogResponse> getBlogById(@PathVariable Long id) {
+        System.out.println("Fetching blog with ID: " + id);
         BlogResponse response = blogService.getBlogById(id);
         return ResponseEntity.ok(response);
     }
@@ -61,12 +62,13 @@ public class BlogController {
         return ResponseEntity.ok(response);
     }
 
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBlog(
+    public ResponseEntity<String> deleteBlog(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         blogService.deleteBlog(id, userDetails.getUsername());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Deleted successfully");
     }
 
     @PostMapping("/{id}/like")
@@ -76,4 +78,15 @@ public class BlogController {
         BlogResponse response = blogService.likeBlog(id, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/comment")
+    public ResponseEntity<String> addComment(
+            @PathVariable Long id,
+            @RequestBody String commentContent,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        BlogResponse response = blogService.addComment(id, commentContent, userDetails.getUsername());
+        return ResponseEntity.ok("Comment successfully added");
+    }
 }
+
+

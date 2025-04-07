@@ -1,6 +1,6 @@
 package com.blog_platform.blog.model;
 
-
+import com.blog_platform.blog.enums.Topic;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,6 +28,17 @@ public class Blog {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    // Remove the single topic field
+    // @Column(nullable = false)
+    // private String topic;
+
+    // Add the list of topics using ElementCollection
+    @ElementCollection
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "blog_topics", joinColumns = @JoinColumn(name = "blog_id"))
+    @Column(name = "topic")
+    private List<Topic> topics = new ArrayList<>();
 
     @Column(name = "preview_image")
     private String previewImage;

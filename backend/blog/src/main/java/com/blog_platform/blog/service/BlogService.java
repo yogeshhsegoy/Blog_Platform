@@ -16,4 +16,5 @@ public interface BlogService {
     BlogResponse updateBlog(Long id, BlogRequest blogRequest, String userId);
     void deleteBlog(Long id, String userId);
     BlogResponse likeBlog(Long id, String userId);
+    BlogResponse addComment(Long id, String userId, String comment);
 }
