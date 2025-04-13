@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  auth-postgres:
+    image: postgres:15
+    container_name: auth-postgres
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpass
+      POSTGRES_HOST_AUTH_METHOD: trust  # For local development only
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
+  redis:
+    image: redis:7-alpine  # Smaller footprint
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
+  auth:
+    build:
+      context: ./backend/auth
+    container_name: auth
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-postgres:5432/authdb
+      SPRING_DATASOURCE_USERNAME: authuser
+      SPRING_DATASOURCE_PASSWORD: authpass
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # Additional recommended settings
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_LIQUIBASE_ENABLED: "false"  # Disable if not using Liquibase
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-network
+    restart: unless-stopped  # Auto-restart on failure
+
+# Uncomment when ready to use the blog service
+#  blog-postgres:
+#    image: postgres:15
+#    container_name: blog-postgres
+#    environment:
+#      POSTGRES_DB: blogdb
+#      POSTGRES_USER: bloguser
+#      POSTGRES_PASSWORD: blogpass
+#    ports:
+#      - "5434:5432"
+#    volumes:
+#      - blog_postgres_data:/var/lib/postgresql/data
+#    networks:
+#      - backend-network
+#
+#  blog:
+#    build:
+#      context: ./backend/blog
+#    container_name: blog
+#    ports:
+#      - "8082:8080"
+#    environment:
+#      SPRING_PROFILES_ACTIVE: dev
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://blog-postgres:5432/blogdb
+#      SPRING_DATASOURCE_USERNAME: bloguser
+#      SPRING_DATASOURCE_PASSWORD: blogpass
+#      SPRING_DATA_REDIS_HOST: redis
+#      SPRING_DATA_REDIS_PORT: 6379
+#    depends_on:
+#      blog-postgres:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    networks:
+#      - backend-network
+
+volumes:
+  auth_postgres_data:
+  redis_data:
+#  blog_postgres_data:
+
+networks:
+  backend-network:
+    driver: bridge

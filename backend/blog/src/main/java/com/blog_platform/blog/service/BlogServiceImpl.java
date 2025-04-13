@@ -1,12 +1,14 @@
 package com.blog_platform.blog.service;
-import com.blog_platform.blog.model.Comment;
 
 import com.blog_platform.blog.dto.BlogRequest;
 import com.blog_platform.blog.dto.BlogResponse;
+import com.blog_platform.blog.dto.BlogEvent;
 import com.blog_platform.blog.exceptions.BlogNotFoundException;
 import com.blog_platform.blog.model.Blog;
+import com.blog_platform.blog.model.Comment;
 import com.blog_platform.blog.repository.BlogRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,15 +17,17 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BlogServiceImpl implements BlogService {
 
     private final BlogRepository blogRepository;
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
     @Transactional
     public BlogResponse createBlog(BlogRequest blogRequest, String userId) {
         Blog blog = new Blog();
-        blog.setTopics(blogRequest.getTopics());  // Updated to set topics list
+        blog.setTopics(blogRequest.getTopics());
         blog.setTitle(blogRequest.getTitle());
         blog.setContent(blogRequest.getContent());
         blog.setPreviewImage(blogRequest.getPreviewImage());
@@ -31,6 +35,17 @@ public class BlogServiceImpl implements BlogService {
         blog.setUserId(userId);
 
         Blog savedBlog = blogRepository.save(blog);
+
+        // Send Kafka event
+        kafkaProducerService.sendBlogEvent(
+                "CREATE",
+                savedBlog.getId(),
+                savedBlog.getTitle(),
+                savedBlog.getContent(),
+                savedBlog.getTopics(),
+                userId
+        );
+
         return mapToBlogResponse(savedBlog);
     }
 
@@ -66,12 +81,23 @@ public class BlogServiceImpl implements BlogService {
         }
 
         blog.setTitle(blogRequest.getTitle());
-        blog.setTopics(blogRequest.getTopics());  // Updated to set topics list
+        blog.setTopics(blogRequest.getTopics());
         blog.setContent(blogRequest.getContent());
         blog.setPreviewImage(blogRequest.getPreviewImage());
         blog.setAnonymous(blogRequest.isAnonymous());
 
         Blog updatedBlog = blogRepository.save(blog);
+
+        // Send Kafka event
+        kafkaProducerService.sendBlogEvent(
+                "UPDATE",
+                updatedBlog.getId(),
+                updatedBlog.getTitle(),
+                updatedBlog.getContent(),
+                updatedBlog.getTopics(),
+                userId
+        );
+
         return mapToBlogResponse(updatedBlog);
     }
 
@@ -84,6 +110,16 @@ public class BlogServiceImpl implements BlogService {
         if (!blog.getUserId().equals(userId)) {
             throw new RuntimeException("You are not authorized to delete this blog");
         }
+
+        // Send Kafka event before deletion
+        kafkaProducerService.sendBlogEvent(
+                "DELETE",
+                blog.getId(),
+                blog.getTitle(),
+                blog.getContent(),
+                blog.getTopics(),
+                userId
+        );
 
         blogRepository.delete(blog);
     }
@@ -105,13 +141,11 @@ public class BlogServiceImpl implements BlogService {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new BlogNotFoundException("Blog not found with id: " + id));
 
-        // Create a new Comment object
         Comment comment = new Comment();
         comment.setContent(commentContent);
         comment.setUserId(userId);
-        comment.setBlog(blog); // Set the blog reference
+        comment.setBlog(blog);
 
-        // Add the comment to the blog's comment list
         blog.getComments().add(comment);
 
         Blog updatedBlog = blogRepository.save(blog);
@@ -121,7 +155,7 @@ public class BlogServiceImpl implements BlogService {
     private BlogResponse mapToBlogResponse(Blog blog) {
         BlogResponse response = new BlogResponse();
         response.setId(blog.getId());
-        response.setTopics(blog.getTopics());  // Updated to get topics list
+        response.setTopics(blog.getTopics());
         response.setTitle(blog.getTitle());
         response.setContent(blog.getContent());
         response.setPreviewImage(blog.getPreviewImage());

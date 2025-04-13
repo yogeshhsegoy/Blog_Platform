@@ -1,0 +1,19 @@
+package com.blog_platform.blog.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class BlogEvent {
+    private String eventType; // "CREATE", "UPDATE", "DELETE"
+    private Long blogId;
+    private String title;
+    private String content;
+    private List<String> topics;
+    private String userId;
+}
