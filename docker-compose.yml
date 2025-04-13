@@ -40,6 +40,25 @@ services:
     networks:
       - backend-network
 
+  recommendation-postgres:
+    image: postgres:15
+    container_name: recommendation-postgres
+    environment:
+      POSTGRES_DB: recommendation_db
+      POSTGRES_USER: recommendation_user
+      POSTGRES_PASSWORD: recommendation_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - recommendation_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recommendation_user -d recommendation_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
   # Redis Service
   redis:
     image: redis:7-alpine
@@ -100,6 +119,8 @@ services:
         condition: service_healthy
       blog-postgres:
         condition: service_healthy
+      recommendation-postgres:
+        condition: service_healthy
     command: >
       bash -c "
         echo 'Creating Kafka topics...';
@@ -148,6 +169,26 @@ services:
       SPRING_DATASOURCE_USERNAME: bloguser
       SPRING_DATASOURCE_PASSWORD: blogpass
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka-topics-init
+    networks:
+      - backend-network
+
+
+  recommendation:
+    build:
+      context: ./backend/recommendation
+    container_name: recommendation
+    ports:
+      - "8083:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://recommendation-postgres:5432/recommendation_db
+      SPRING_DATASOURCE_USERNAME: recommendation_user
+      SPRING_DATASOURCE_PASSWORD: recommendation_pass
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
     depends_on:
       - kafka-topics-init
     networks:
