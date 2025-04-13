@@ -2,6 +2,7 @@ package com.blog_platform.blog.config;
 
 
 
+import com.blog_platform.blog.dto.BlogEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;

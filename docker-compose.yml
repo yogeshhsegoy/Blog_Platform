@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Database Services
   auth-postgres:
     image: postgres:15
     container_name: auth-postgres
@@ -8,7 +9,6 @@ services:
       POSTGRES_DB: authdb
       POSTGRES_USER: authuser
       POSTGRES_PASSWORD: authpass
-      POSTGRES_HOST_AUTH_METHOD: trust  # For local development only
     ports:
       - "5433:5432"
     volumes:
@@ -21,8 +21,28 @@ services:
     networks:
       - backend-network
 
+  blog-postgres:
+    image: postgres:15
+    container_name: blog-postgres
+    environment:
+      POSTGRES_DB: blogdb
+      POSTGRES_USER: bloguser
+      POSTGRES_PASSWORD: blogpass
+    ports:
+      - "5434:5432"
+    volumes:
+      - blog_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bloguser -d blogdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
+  # Redis Service
   redis:
-    image: redis:7-alpine  # Smaller footprint
+    image: redis:7-alpine
     container_name: redis
     ports:
       - "6379:6379"
@@ -36,6 +56,61 @@ services:
     networks:
       - backend-network
 
+  # Kafka Services
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - backend-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+    networks:
+      - backend-network
+
+  kafka-topics-init:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-topics-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+      blog-postgres:
+        condition: service_healthy
+    command: >
+      bash -c "
+        echo 'Creating Kafka topics...';
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic blog-events --partitions 3 --replication-factor 1;
+        echo 'Kafka topics created successfully';
+        kafka-topics --bootstrap-server kafka:9092 --list
+      "
+    networks:
+      - backend-network
+
+  # Application Services
   auth:
     build:
       context: ./backend/auth
@@ -49,10 +124,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: authpass
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      # Additional recommended settings
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
-      SPRING_LIQUIBASE_ENABLED: "false"  # Disable if not using Liquibase
+      SPRING_LIQUIBASE_ENABLED: "false"
     depends_on:
       auth-postgres:
         condition: service_healthy
@@ -60,48 +134,29 @@ services:
         condition: service_healthy
     networks:
       - backend-network
-    restart: unless-stopped  # Auto-restart on failure
+    restart: unless-stopped
 
-# Uncomment when ready to use the blog service
-#  blog-postgres:
-#    image: postgres:15
-#    container_name: blog-postgres
-#    environment:
-#      POSTGRES_DB: blogdb
-#      POSTGRES_USER: bloguser
-#      POSTGRES_PASSWORD: blogpass
-#    ports:
-#      - "5434:5432"
-#    volumes:
-#      - blog_postgres_data:/var/lib/postgresql/data
-#    networks:
-#      - backend-network
-#
-#  blog:
-#    build:
-#      context: ./backend/blog
-#    container_name: blog
-#    ports:
-#      - "8082:8080"
-#    environment:
-#      SPRING_PROFILES_ACTIVE: dev
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://blog-postgres:5432/blogdb
-#      SPRING_DATASOURCE_USERNAME: bloguser
-#      SPRING_DATASOURCE_PASSWORD: blogpass
-#      SPRING_DATA_REDIS_HOST: redis
-#      SPRING_DATA_REDIS_PORT: 6379
-#    depends_on:
-#      blog-postgres:
-#        condition: service_healthy
-#      redis:
-#        condition: service_healthy
-#    networks:
-#      - backend-network
+  blog:
+    build:
+      context: ./backend/blog
+    container_name: blog
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://blog-postgres:5432/blogdb
+      SPRING_DATASOURCE_USERNAME: bloguser
+      SPRING_DATASOURCE_PASSWORD: blogpass
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka-topics-init
+    networks:
+      - backend-network
 
 volumes:
   auth_postgres_data:
+  blog_postgres_data:
   redis_data:
-#  blog_postgres_data:
 
 networks:
   backend-network:

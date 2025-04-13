@@ -3,10 +3,8 @@
   <component name="CoolRequestSetting">
     <option name="serializePaths">
       <list>
-        <option value="$USER_HOME$/.config/.cool-request/request/serialize/9d8f68fa091344edb78cdc85335e9fa4" />
-        <option value="$USER_HOME$/.config/.cool-request/request/serialize/7a6e1a27e0be4150b4982fe354ff160d" />
-        <option value="$USER_HOME$/.config/.cool-request/request/serialize/c46e117ac649405398aae281cebea785" />
         <option value="$USER_HOME$/.config/.cool-request/request/serialize/8dda4accade642c4970b33bfa745b687" />
+        <option value="$USER_HOME$/.config/.cool-request/request/serialize/8912f444999b4e1b9d6078fff0398282" />
       </list>
     </option>
     <option name="projectCachePath" value="project-45c09b01-43cd-47f0-8109-c96c97dcb1f8" />
