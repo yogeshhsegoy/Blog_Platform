@@ -42,7 +42,9 @@ public class BlogServiceImpl implements BlogService {
                 savedBlog.getId(),
                 savedBlog.getTitle(),
                 savedBlog.getContent(),
-                savedBlog.getTopics(),
+                savedBlog.getTopics().stream()
+                        .map(Enum::name)
+                        .collect(Collectors.toList()),
                 userId
         );
 
@@ -94,7 +96,9 @@ public class BlogServiceImpl implements BlogService {
                 updatedBlog.getId(),
                 updatedBlog.getTitle(),
                 updatedBlog.getContent(),
-                updatedBlog.getTopics(),
+                updatedBlog.getTopics().stream()
+                        .map(Enum::name)
+                        .collect(Collectors.toList()),
                 userId
         );
 
@@ -117,7 +121,9 @@ public class BlogServiceImpl implements BlogService {
                 blog.getId(),
                 blog.getTitle(),
                 blog.getContent(),
-                blog.getTopics(),
+                blog.getTopics().stream()
+                        .map(Enum::name)
+                        .collect(Collectors.toList()),
                 userId
         );
 

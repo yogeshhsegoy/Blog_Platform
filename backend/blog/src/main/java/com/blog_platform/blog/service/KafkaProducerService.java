@@ -20,7 +20,7 @@ public class KafkaProducerService {
     private final KafkaTemplate<String, BlogEvent> kafkaTemplate;
 
     @Async
-    public void sendBlogEvent(String eventType, Long blogId, String title, String content, List<Topic> topics, String userId) {
+    public void sendBlogEvent(String eventType, Long blogId, String title, String content, List<String> topics, String userId) {
         try {
             BlogEvent event = new BlogEvent(eventType, blogId, title, content, topics, userId);
 

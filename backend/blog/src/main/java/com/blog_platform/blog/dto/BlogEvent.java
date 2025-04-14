@@ -15,6 +15,6 @@ public class BlogEvent {
     private Long blogId;
     private String title;
     private String content;
-    private List<Topic> topics;
+    private List<String> topics;
     private String userId;
 }
