@@ -2,53 +2,97 @@ package com.blog_platform.recommendation.service;
 
 import com.blog_platform.recommendation.dto.BlogEvent;
 import com.blog_platform.recommendation.model.Blog;
+import com.blog_platform.recommendation.model.Topic;
 import com.blog_platform.recommendation.repository.BlogRepository;
+import com.blog_platform.recommendation.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Arrays;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class KafkaConsumerService {
-
     private final BlogRepository blogRepository;
-    private final RecommendationService recommendationService;
+    private final TopicRepository topicRepository;
+    private final EmbeddingService embeddingService;
 
-    @KafkaListener(topics = "blog-events", groupId = "recommendation-service")
-    @Transactional
-    public void handleBlogEvent(BlogEvent event) {
+    @KafkaListener(topics = "blog-events", groupId = "recommendation-group")
+    public void consumeBlogEvent(BlogEvent blogEvent) {
+        log.info("Received blog event: {}", blogEvent);
+
         try {
-            switch (event.getEventType()) {
-                case "CREATE":
-                case "UPDATE":
-                    processBlogUpdate(event);
-                    break;
-                case "DELETE":
-                    blogRepository.deleteById(event.getBlogId());
-                    break;
-                default:
-                    log.warn("Unknown event type: {}", event.getEventType());
-            }
+            processEvent(blogEvent);
+        } catch (OptimisticLockingFailureException e) {
+            log.error("OptimisticLockingFailureException", e);
+            log.info("Skipping duplicate processing for blog ID: {} - entity was already updated", blogEvent.getBlogId());
         } catch (Exception e) {
-            log.error("Error processing blog event", e);
+            log.error("Error processing blog event: {}", blogEvent, e);
+            throw e;
         }
     }
 
-    private void processBlogUpdate(BlogEvent event) {
-        Blog blog = blogRepository.findById(event.getBlogId()).orElse(new Blog());
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void processEvent(BlogEvent blogEvent) {
+        try {
+            switch (blogEvent.getEventType()) {
+                case "CREATE", "UPDATE" -> handleCreateOrUpdateEvent(blogEvent);
+                case "DELETE" -> handleDeleteEvent(blogEvent);
+                default -> log.warn("Unknown event type: {}", blogEvent.getEventType());
+            }
+        } catch (Exception e) {
+            log.error("Transaction failed for event {}", blogEvent, e);
+            throw e;
+        }
+    }
 
-        blog.setId(event.getBlogId());
-        blog.setTitle(event.getTitle());
-        blog.setContent(event.getContent());
-        blog.setTopics(event.getTopics());
-        blog.setUserId(event.getUserId());
+    private void handleCreateOrUpdateEvent(BlogEvent blogEvent) {
+        Optional<Blog> existingBlog = blogRepository.findById(blogEvent.getBlogId());
+        Blog blog = existingBlog.orElse(new Blog());
 
-        // Generate embeddings
-        recommendationService.updateBlogEmbeddings(blog);
+        blog.setId(blogEvent.getBlogId());
+        blog.setTitle(blogEvent.getTitle());
+        blog.setContent(blogEvent.getContent());
+        blog.setUserId(blogEvent.getUserId());
 
-        blogRepository.save(blog);
+        if (blogEvent.getTopics() != null) {
+            blog.setTopics(blogEvent.getTopics().stream()
+                    .map(topicName -> topicRepository.findByName(topicName)
+                            .orElseGet(() -> {
+                                Topic newTopic = new Topic();
+                                newTopic.setName(topicName);
+                                return topicRepository.save(newTopic);
+                            }))
+                    .toList());
+        }
+        log.debug("Topics set for blog {}: {}", blogEvent.getBlogId(), blog.getTopics());
+
+        float[] titleEmbedding = embeddingService.generateTitleEmbedding(blogEvent.getTitle());
+        blog.setTitleEmbedding(titleEmbedding);
+        log.debug("Title embedding for blog {}: {}", blogEvent.getBlogId(), Arrays.toString(titleEmbedding));
+
+        float[] contentEmbedding = embeddingService.generateContentEmbedding(blogEvent.getContent());
+        blog.setContentEmbedding(contentEmbedding);
+        log.debug("Content embedding for blog {}: {}", blogEvent.getBlogId(), Arrays.toString(contentEmbedding));
+
+        Blog savedBlog = blogRepository.save(blog);
+        log.info("Processed {} event for blog {}", blogEvent.getEventType(), savedBlog.getId());
+    }
+
+    private void handleDeleteEvent(BlogEvent blogEvent) {
+        Optional<Blog> blogOptional = blogRepository.findById(blogEvent.getBlogId());
+        if (blogOptional.isPresent()) {
+            blogRepository.delete(blogOptional.get());
+            log.info("Deleted blog with ID: {}", blogEvent.getBlogId());
+        } else {
+            log.warn("Attempted to delete non-existent blog with ID: {}", blogEvent.getBlogId());
+        }
     }
 }

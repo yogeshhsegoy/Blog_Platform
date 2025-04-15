@@ -41,7 +41,7 @@ services:
       - backend-network
 
   recommendation-postgres:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     container_name: recommendation-postgres
     environment:
       POSTGRES_DB: recommendation_db
@@ -51,6 +51,7 @@ services:
       - "5435:5432"
     volumes:
       - recommendation_postgres_data:/var/lib/postgresql/data
+      - ./backend/recommendation/init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U recommendation_user -d recommendation_db"]
       interval: 5s
@@ -77,7 +78,7 @@ services:
 
   # Kafka Services
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -88,7 +89,7 @@ services:
       - backend-network
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
     depends_on:
       - zookeeper
@@ -104,30 +105,10 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:9092 --list"]
       interval: 10s
       timeout: 20s
       retries: 5
-    networks:
-      - backend-network
-
-  kafka-topics-init:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka-topics-init
-    depends_on:
-      kafka:
-        condition: service_healthy
-      blog-postgres:
-        condition: service_healthy
-      recommendation-postgres:
-        condition: service_healthy
-    command: >
-      bash -c "
-        echo 'Creating Kafka topics...';
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic blog-events --partitions 3 --replication-factor 1;
-        echo 'Kafka topics created successfully';
-        kafka-topics --bootstrap-server kafka:9092 --list
-      "
     networks:
       - backend-network
 
@@ -147,7 +128,6 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
-      SPRING_LIQUIBASE_ENABLED: "false"
     depends_on:
       auth-postgres:
         condition: service_healthy
@@ -155,7 +135,6 @@ services:
         condition: service_healthy
     networks:
       - backend-network
-    restart: unless-stopped
 
   blog:
     build:
@@ -169,11 +148,14 @@ services:
       SPRING_DATASOURCE_USERNAME: bloguser
       SPRING_DATASOURCE_PASSWORD: blogpass
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
-      - kafka-topics-init
+      kafka:
+        condition: service_healthy
+      blog-postgres:
+        condition: service_healthy
     networks:
       - backend-network
-
 
   recommendation:
     build:
@@ -187,16 +169,20 @@ services:
       SPRING_DATASOURCE_USERNAME: recommendation_user
       SPRING_DATASOURCE_PASSWORD: recommendation_pass
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
     depends_on:
-      - kafka-topics-init
+      recommendation-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - backend-network
 
 volumes:
   auth_postgres_data:
   blog_postgres_data:
+  recommendation_postgres_data:
   redis_data:
 
 networks:

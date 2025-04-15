@@ -1,36 +1,54 @@
 package com.blog_platform.recommendation.model;
 
-import io.hypersistence.utils.hibernate.type.array.FloatArrayType;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Entity
 @Table(name = "blogs")
 public class Blog {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+//    @Version
+//    private Long version;
 
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "user_id")
     private String userId;
 
-    @ElementCollection
-    @CollectionTable(name = "blog_topics", joinColumns = @JoinColumn(name = "blog_id"))
-    @Column(name = "topic")
-    private List<String> topics;
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "blog_topics",
+            joinColumns = @JoinColumn(name = "blog_id"),
+            inverseJoinColumns = @JoinColumn(name = "topic_id")
+    )
+    private List<Topic> topics;
 
-    @Type(FloatArrayType.class)
-    @Column(name = "title_embedding", columnDefinition = "float8[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "title_embedding", columnDefinition = "vector(384)")
     private float[] titleEmbedding;
 
-    @Type(FloatArrayType.class)
-    @Column(name = "content_embedding", columnDefinition = "float8[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "content_embedding", columnDefinition = "vector(768)")
     private float[] contentEmbedding;
+
+    public void setTopicNames(List<String> topicNames) {
+        this.topics = topicNames.stream()
+                .map(name -> {
+                    Topic topic = new Topic();
+                    topic.setName(name);
+                    return topic;
+                })
+                .collect(Collectors.toList());
+    }
 }
