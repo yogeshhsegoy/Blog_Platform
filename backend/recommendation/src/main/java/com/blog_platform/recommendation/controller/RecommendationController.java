@@ -33,7 +33,16 @@ public class RecommendationController {
         List<Long> blogIds = recommendationService.getHybridRecommendations(topics, query, limit);
         return new RecommendationResponse(blogIds, "HYBRID");
     }
+    @GetMapping("/similar-blogs")
+    public RecommendationResponse getSimilarRecommendations(
+            @RequestParam List<String> topics,
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestParam(defaultValue = "10") int limit) {
 
+        List<Long> blogIds = recommendationService.getSimilarRecommendations(topics, title, content, limit);
+        return new RecommendationResponse(blogIds, "SIMILAR_BLOGS");
+    }
     @GetMapping("/content-based")
     public RecommendationResponse getContentBasedRecommendations(
             @RequestParam String query,
