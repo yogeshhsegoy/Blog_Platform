@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS blogs (
     content TEXT,
     user_id TEXT,
     title_embedding vector(384),  -- Using pgvector's vector type
-    content_embedding vector(768) -- Adjust dimension as needed
+    content_embedding vector(1024) -- Adjust dimension as needed
 );
 
 -- Topics lookup table

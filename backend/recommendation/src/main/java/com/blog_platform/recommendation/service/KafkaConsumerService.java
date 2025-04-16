@@ -12,6 +12,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -23,6 +24,9 @@ public class KafkaConsumerService {
     private final BlogRepository blogRepository;
     private final TopicRepository topicRepository;
     private final EmbeddingService embeddingService;
+
+    @Value("${embedding.service.enabled:true}")
+    private boolean embeddingServiceEnabled;
 
     @KafkaListener(topics = "blog-events", groupId = "recommendation-group")
     public void consumeBlogEvent(BlogEvent blogEvent) {
@@ -74,13 +78,20 @@ public class KafkaConsumerService {
         }
         log.debug("Topics set for blog {}: {}", blogEvent.getBlogId(), blog.getTopics());
 
-        float[] titleEmbedding = embeddingService.generateTitleEmbedding(blogEvent.getTitle());
-        blog.setTitleEmbedding(titleEmbedding);
-        log.debug("Title embedding for blog {}: {}", blogEvent.getBlogId(), Arrays.toString(titleEmbedding));
+        // Only generate embeddings if the service is enabled and available
+        if (embeddingServiceEnabled && embeddingService.isModelsLoaded()) {
+            // Generate title embedding
+            float[] titleEmbedding = embeddingService.generateTitleEmbedding(blogEvent.getTitle());
+            blog.setTitleEmbedding(titleEmbedding);
+            log.debug("Title embedding for blog {}: {}", blogEvent.getBlogId(), Arrays.toString(titleEmbedding));
 
-        float[] contentEmbedding = embeddingService.generateContentEmbedding(blogEvent.getContent());
-        blog.setContentEmbedding(contentEmbedding);
-        log.debug("Content embedding for blog {}: {}", blogEvent.getBlogId(), Arrays.toString(contentEmbedding));
+            // Generate content embedding
+            float[] contentEmbedding = embeddingService.generateContentEmbedding(blogEvent.getContent());
+            blog.setContentEmbedding(contentEmbedding);
+            log.debug("Content embedding for blog {}: {}", blogEvent.getBlogId(), Arrays.toString(contentEmbedding));
+        } else {
+            log.warn("Skipping embedding generation for blog {} - service not available", blogEvent.getBlogId());
+        }
 
         Blog savedBlog = blogRepository.save(blog);
         log.info("Processed {} event for blog {}", blogEvent.getEventType(), savedBlog.getId());

@@ -39,7 +39,7 @@ public class Blog {
     private float[] titleEmbedding;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "content_embedding", columnDefinition = "vector(768)")
+    @Column(name = "content_embedding", columnDefinition = "vector(1024)")
     private float[] contentEmbedding;
 
     public void setTopicNames(List<String> topicNames) {

@@ -112,6 +112,33 @@ services:
     networks:
       - backend-network
 
+  # Embedding Service
+  embedding-service:
+    build:
+      context: ./backend/embeddingService
+      dockerfile: Dockerfile
+    container_name: embedding-service
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_CACHE_DIR=/app/model_cache
+    volumes:
+      - embedding_model_cache:/app/model_cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 5 
+      start_period: 300s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    networks:
+      - backend-network
+
   # Application Services
   auth:
     build:
@@ -171,10 +198,15 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      EMBEDDING_SERVICE_URL: http://embedding-service:8000
+      EMBEDDING_SERVICE_ENABLED: "true"
+      EMBEDDING_SERVICE_TIMEOUT: 30
     depends_on:
       recommendation-postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      embedding-service:
         condition: service_healthy
     networks:
       - backend-network
@@ -184,6 +216,7 @@ volumes:
   blog_postgres_data:
   recommendation_postgres_data:
   redis_data:
+  embedding_model_cache:
 
 networks:
   backend-network:
