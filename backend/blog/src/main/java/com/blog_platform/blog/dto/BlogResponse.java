@@ -16,6 +16,9 @@ public class BlogResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private int likes;
+    private int dislikes;
+    private boolean isLikedByCurrentUser;
+    private boolean isDislikedByCurrentUser;
     private List<Comment> comments;
     private boolean anonymous;
     private String userId;

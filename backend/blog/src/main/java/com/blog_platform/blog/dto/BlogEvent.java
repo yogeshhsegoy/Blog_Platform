@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BlogEvent {
-    private String eventType; // "CREATE", "UPDATE", "DELETE"
+    private String eventType;
     private Long blogId;
     private String title;
     private String content;

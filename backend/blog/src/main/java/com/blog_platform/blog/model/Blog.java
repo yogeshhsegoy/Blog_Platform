@@ -11,6 +11,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "blogs")
@@ -51,8 +53,13 @@ public class Blog {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
-    private int likes = 0;
+    @ElementCollection
+    @CollectionTable(name = "blog_likes", joinColumns = @JoinColumn(name = "blog_id"))
+    private Set<String> likedByUsers = new HashSet<>();
+
+    @ElementCollection
+    @CollectionTable(name = "blog_dislikes", joinColumns = @JoinColumn(name = "blog_id"))
+    private Set<String> dislikedByUsers = new HashSet<>();
 
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();

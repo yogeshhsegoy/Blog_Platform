@@ -72,11 +72,31 @@ public class BlogController {
     }
 
     @PostMapping("/{id}/like")
-    public ResponseEntity<BlogResponse> likeBlog(
+    public ResponseEntity<?> likeBlog(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        BlogResponse response = blogService.likeBlog(id, userDetails.getUsername());
-        return ResponseEntity.ok(response);
+        try {
+            BlogResponse response = blogService.likeBlog(id, userDetails.getUsername());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/dislike")
+    public ResponseEntity<?> dislikeBlog(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            BlogResponse response = blogService.dislikeBlog(id, userDetails.getUsername());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
+        }
     }
 
     @PostMapping("/{id}/comment")

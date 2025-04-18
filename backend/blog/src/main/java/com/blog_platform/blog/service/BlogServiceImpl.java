@@ -48,27 +48,27 @@ public class BlogServiceImpl implements BlogService {
                 userId
         );
 
-        return mapToBlogResponse(savedBlog);
+        return mapToBlogResponse(savedBlog, userId);
     }
 
     @Override
     public BlogResponse getBlogById(Long id) {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new BlogNotFoundException("Blog not found with id: " + id));
-        return mapToBlogResponse(blog);
+        return mapToBlogResponse(blog, null);
     }
 
     @Override
     public List<BlogResponse> getAllBlogs() {
         return blogRepository.findAll().stream()
-                .map(this::mapToBlogResponse)
+                .map(blog -> mapToBlogResponse(blog, null))
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<BlogResponse> getBlogsByUser(String userId) {
         return blogRepository.findByUserId(userId).stream()
-                .map(this::mapToBlogResponse)
+                .map(blog -> mapToBlogResponse(blog, userId))
                 .collect(Collectors.toList());
     }
 
@@ -102,7 +102,7 @@ public class BlogServiceImpl implements BlogService {
                 userId
         );
 
-        return mapToBlogResponse(updatedBlog);
+        return mapToBlogResponse(updatedBlog, userId);
     }
 
     @Override
@@ -136,9 +136,36 @@ public class BlogServiceImpl implements BlogService {
         Blog blog = blogRepository.findById(id)
                 .orElseThrow(() -> new BlogNotFoundException("Blog not found with id: " + id));
 
-        blog.setLikes(blog.getLikes() + 1);
-        Blog likedBlog = blogRepository.save(blog);
-        return mapToBlogResponse(likedBlog);
+        if (blog.getLikedByUsers().contains(userId)) {
+            blog.getLikedByUsers().remove(userId);
+        } else if (blog.getDislikedByUsers().contains(userId)) {
+            blog.getDislikedByUsers().remove(userId);
+            blog.getLikedByUsers().add(userId);
+        } else {
+            blog.getLikedByUsers().add(userId);
+        }
+
+        Blog updatedBlog = blogRepository.save(blog);
+        return mapToBlogResponse(updatedBlog, userId);
+    }
+
+    @Override
+    @Transactional
+    public BlogResponse dislikeBlog(Long id, String userId) {
+        Blog blog = blogRepository.findById(id)
+                .orElseThrow(() -> new BlogNotFoundException("Blog not found with id: " + id));
+
+        if (blog.getDislikedByUsers().contains(userId)) {
+            blog.getDislikedByUsers().remove(userId);
+        } else if (blog.getLikedByUsers().contains(userId)) {
+            blog.getLikedByUsers().remove(userId);
+            blog.getDislikedByUsers().add(userId);
+        } else {
+            blog.getDislikedByUsers().add(userId);
+        }
+
+        Blog updatedBlog = blogRepository.save(blog);
+        return mapToBlogResponse(updatedBlog, userId);
     }
 
     @Override
@@ -155,10 +182,11 @@ public class BlogServiceImpl implements BlogService {
         blog.getComments().add(comment);
 
         Blog updatedBlog = blogRepository.save(blog);
-        return mapToBlogResponse(updatedBlog);
+        return mapToBlogResponse(updatedBlog, userId);
     }
 
-    private BlogResponse mapToBlogResponse(Blog blog) {
+    // Update the mapToBlogResponse method:
+    private BlogResponse mapToBlogResponse(Blog blog, String currentUserId) {
         BlogResponse response = new BlogResponse();
         response.setId(blog.getId());
         response.setTopics(blog.getTopics());
@@ -167,7 +195,17 @@ public class BlogServiceImpl implements BlogService {
         response.setPreviewImage(blog.getPreviewImage());
         response.setCreatedAt(blog.getCreatedAt());
         response.setUpdatedAt(blog.getUpdatedAt());
-        response.setLikes(blog.getLikes());
+        if (currentUserId != null) {
+            response.setLikedByCurrentUser(blog.getLikedByUsers().contains(currentUserId));
+            response.setDislikedByCurrentUser(blog.getDislikedByUsers().contains(currentUserId));
+        } else {
+            response.setLikedByCurrentUser(false);
+            response.setDislikedByCurrentUser(false);
+        }
+        response.setLikes(blog.getLikedByUsers().size());
+        response.setDislikes(blog.getDislikedByUsers().size());
+        response.setLikedByCurrentUser(currentUserId != null && blog.getLikedByUsers().contains(currentUserId));
+        response.setDislikedByCurrentUser(currentUserId != null && blog.getDislikedByUsers().contains(currentUserId));
         response.setComments(blog.getComments());
         response.setAnonymous(blog.isAnonymous());
         response.setUserId(blog.isAnonymous() ? null : blog.getUserId());
