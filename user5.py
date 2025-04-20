@@ -4,7 +4,7 @@ import requests
 URL = "http://localhost:8082/api/blogs"
 HEADERS = {
     "Content-Type": "application/json",
-    "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ0b3BpY3MiOlsic3BvcnRzIiwiY3JpY2tldCJdLCJzdWIiOiJ5b2dlc2giLCJpYXQiOjE3NDUxNzYxMTksImV4cCI6MTc0NTI2MjUxOX0.LlcXA9jT90wTouJzNtpzCjcRLhaxY6GhAzkfXsJYcCw"  # Replace with your actual token
+    "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ0b3BpY3MiOlsiRk9PVEJBTEwiLCJTUE9SVFMiLCJVU0EiXSwic3ViIjoicHJpeWFfc2hhcm1hIiwiaWF0IjoxNzQ1MTg0MTYzLCJleHAiOjE3NDUyNzA1NjN9.Lk0DVS-E9oUhxjLWo5r9KszQnJuQGvaWVWI6uebXi5Y"  # Replace with your actual token
 }
 
 # List of posts

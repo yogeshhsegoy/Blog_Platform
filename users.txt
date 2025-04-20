@@ -1,0 +1,35 @@
+{
+  "password": "SecurePass123!",
+  "topics": ["CRICKET", "SPORTS", "INDIA"],
+  "email": "yogesh.kumar92@gmail.com",
+  "username": "yogesh"
+}
+
+{
+  "password": "Hrishikesh@2025",
+  "topics": ["AIML", "CODING", "GATE"],
+  "email": "hrishi.patil88@yahoo.com",
+  "username": "hrishikesh"
+}
+
+{
+  "password": "Aish2024#Star",
+  "topics": ["BADMINTON", "SPORTS", "WEATHER"],
+  "email": "aishwariya.rai95@outlook.com",
+  "username": "aishwariya"
+}
+
+
+{
+  "password": "Sukesh!7890",
+  "topics": ["POLITICS", "USA", "RUSSIA"],
+  "email": "sukesh.verma90@hotmail.com",
+  "username": "sukesh"
+}
+
+{
+  "password": "Priya$2025!",
+  "topics": ["FOOTBALL", "SPORTS", "USA"],
+  "email": "priya.sharma87@gmail.com",
+  "username": "priya_sharma"
+}
