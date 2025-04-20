@@ -40,7 +40,7 @@ public class BlogController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<BlogResponse>> getAllBlogs() {
         List<BlogResponse> responses = blogService.getAllBlogs();
         return ResponseEntity.ok(responses);
@@ -106,6 +106,14 @@ public class BlogController {
             @AuthenticationPrincipal UserDetails userDetails) {
         BlogResponse response = blogService.addComment(id, commentContent, userDetails.getUsername());
         return ResponseEntity.ok("Comment successfully added");
+    }
+
+
+    @PostMapping("blogsByList")
+    public ResponseEntity<List<BlogResponse>> getBlogsByList(
+            @RequestBody List<Long> ids) {
+        List<BlogResponse> responses = blogService.getBlogsByList(ids);
+        return ResponseEntity.ok(responses);
     }
 }
 

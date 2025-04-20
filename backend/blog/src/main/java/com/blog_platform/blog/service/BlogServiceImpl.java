@@ -2,7 +2,6 @@ package com.blog_platform.blog.service;
 
 import com.blog_platform.blog.dto.BlogRequest;
 import com.blog_platform.blog.dto.BlogResponse;
-import com.blog_platform.blog.dto.BlogEvent;
 import com.blog_platform.blog.exceptions.BlogNotFoundException;
 import com.blog_platform.blog.model.Blog;
 import com.blog_platform.blog.model.Comment;
@@ -69,6 +68,12 @@ public class BlogServiceImpl implements BlogService {
     public List<BlogResponse> getBlogsByUser(String userId) {
         return blogRepository.findByUserId(userId).stream()
                 .map(blog -> mapToBlogResponse(blog, userId))
+                .collect(Collectors.toList());
+    }
+    @Override
+    public List<BlogResponse> getBlogsByList(List<Long> ids) {
+        return blogRepository.findAllById(ids).stream()
+                .map(blog -> mapToBlogResponse(blog, null))
                 .collect(Collectors.toList());
     }
 
@@ -211,4 +216,5 @@ public class BlogServiceImpl implements BlogService {
         response.setUserId(blog.isAnonymous() ? null : blog.getUserId());
         return response;
     }
+
 }

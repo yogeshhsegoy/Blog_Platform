@@ -13,6 +13,7 @@ public interface BlogService {
     BlogResponse getBlogById(Long id);
     List<BlogResponse> getAllBlogs();
     List<BlogResponse> getBlogsByUser(String userId);
+    List<BlogResponse> getBlogsByList(List<Long> ids);
     BlogResponse updateBlog(Long id, BlogRequest blogRequest, String userId);
     void deleteBlog(Long id, String userId);
     BlogResponse likeBlog(Long id, String userId);
