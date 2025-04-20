@@ -211,6 +211,33 @@ services:
     networks:
       - backend-network
 
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend/project
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_AUTH_SERVICE_URL: http://localhost:8081
+      NEXT_PUBLIC_BLOG_SERVICE_URL: http://localhost:8082
+      NEXT_PUBLIC_RECOMMENDATION_SERVICE_URL: http://localhost:8083
+    volumes:
+      - ./frontend/project:/app
+      - /app/node_modules
+    networks:
+      - backend-network
+    depends_on:
+      - auth
+      - blog
+      - recommendation
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   auth_postgres_data:
   blog_postgres_data:
