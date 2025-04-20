@@ -1,0 +1,56 @@
+Artifact 1: user_1_long_blogs.py
+Focus: Cricket, sports, and India-related topics.
+Topics Used:
+
+CRICKET: 16 posts
+SPORTS: 12 posts
+INDIA: 8 posts
+WEATHER: 2 posts
+POLITICS: 1 posts
+
+Artifact 2: user_2_long_blogs.py
+Focus: AIML, coding, GATE, and tech-related politics.
+Topics Used:
+
+AIML: 10 posts
+CODING: 8 posts
+GATE: 5 posts
+POLITICS: 3 posts
+INDIA: 2 posts
+USA: 1 post
+
+
+Artifact 3: user_3_long_blogs.py
+Focus: Football, sports, politics, USA, and Russia.
+Topics Used:
+
+FOOTBALL: 15 posts
+SPORTS: 13 posts
+POLITICS: 3 posts
+USA: 3 posts
+RUSSIA: 2 posts
+
+
+Artifact 4: user_4_long_blogs.py
+Focus: Badminton, sports, India, weather, and politics.
+Topics Used:
+
+SPORTS: 15 posts
+BADMINTON: 11 posts
+INDIA: 8 posts
+WEATHER: 4 posts
+POLITICS: 2 posts
+
+
+Artifact 5: user_5_long_blogs.py
+Focus: Politics, USA, Russia, India, and weather.
+Topics Used:
+
+POLITICS: 13 posts
+INDIA: 5 posts
+USA: 5 posts
+RUSSIA: 5 posts
+WEATHER: 5 posts
+
+
+
