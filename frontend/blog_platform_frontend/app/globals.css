@@ -24,3 +24,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer base {
+  h1,
+  ul,
+  ol,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: revert;
+    font-weight: revert;
+  }
+}
+
+
+@plugin "@tailwindcss/typography";
+
+.editor-wrapper:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
